@@ -109,12 +109,28 @@
     flex-direction:column;
     text-decoration:none;
     color:inherit;
-    transition: transform .15s ease, box-shadow .15s ease;
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
     position:relative;
+    cursor:grab;
   }
+  .card:active{ cursor:grabbing; }
   .card:hover{
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(11,30,58,0.18);
+  }
+  .card.dragging{
+    opacity: 0.4;
+  }
+  .card.drag-over{
+    outline: 2px dashed var(--gold);
+    outline-offset: -2px;
+  }
+  .grip{
+    cursor:grab;
+    color: var(--muted);
+    font-size:0.6rem;
+    letter-spacing:1px;
+    flex-shrink:0;
   }
   .card-delete{
     position:absolute;
@@ -147,10 +163,11 @@
     overflow:hidden;
     text-overflow:ellipsis;
   }
-  .card-title span:first-child{
+  .card-title span.title-text{
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
+    flex:1;
   }
   .card-title .dot{
     width:5px; height:5px; border-radius:50%;
@@ -259,13 +276,14 @@
 
   // Links usados apenas para popular o banco na primeira vez que ele estiver vazio.
   const seedLinks = [
-    { title: "NetCarros", url: "https://carbankapp1-dev.github.io/netcarros/" },
-    { title: "Propostas", url: "https://demandassp1-vw.github.io/propostas/" },
-    { title: "Taxa Especial", url: "https://demandassp1-vw.github.io/taxa_especial/" },
-    { title: "Baixa Temporária - Ofício", url: "https://demandassp1-vw.github.io/baixa-temporaria-oficio/" }
+    { title: "NetCarros", url: "https://carbankapp1-dev.github.io/netcarros/", order: 0 },
+    { title: "Propostas", url: "https://demandassp1-vw.github.io/propostas/", order: 1 },
+    { title: "Taxa Especial", url: "https://demandassp1-vw.github.io/taxa_especial/", order: 2 },
+    { title: "Baixa Temporária - Ofício", url: "https://demandassp1-vw.github.io/baixa-temporaria-oficio/", order: 3 }
   ];
 
-  let links = []; // { key, title, url }
+  let links = []; // { key, title, url, order }
+  let draggedKey = null;
   const statusMsg = document.getElementById('statusMsg');
 
   function screenshotUrl(targetUrl){
@@ -285,12 +303,16 @@
     }
     emptyMsg.style.display = 'none';
 
-    links.forEach(link => {
+    const sorted = [...links].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    sorted.forEach(link => {
       const card = document.createElement('a');
       card.className = 'card';
       card.href = link.url;
       card.target = '_blank';
       card.rel = 'noopener noreferrer';
+      card.draggable = true;
+      card.dataset.key = link.key;
 
       let hostname = '';
       try { hostname = new URL(link.url).hostname; } catch(e) { hostname = link.url; }
@@ -298,7 +320,8 @@
       card.innerHTML = `
         <button class="card-delete" title="Remover card" onclick="deleteCard(event, '${link.key}')">✕</button>
         <div class="card-title">
-          <span>${link.title}</span>
+          <span class="grip">⋮⋮</span>
+          <span class="title-text">${link.title}</span>
           <span class="dot"></span>
         </div>
         <div class="browser-frame">
@@ -312,8 +335,51 @@
         </div>
         <div class="card-footer">${hostname}</div>
       `;
+
+      card.addEventListener('dragstart', () => {
+        draggedKey = link.key;
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+      });
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if(link.key !== draggedKey) card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over');
+      });
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        reorderCards(draggedKey, link.key);
+      });
+
       grid.appendChild(card);
     });
+  }
+
+  function reorderCards(fromKey, toKey){
+    if(!fromKey || fromKey === toKey) return;
+
+    const sorted = [...links].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const fromIndex = sorted.findIndex(l => l.key === fromKey);
+    const toIndex = sorted.findIndex(l => l.key === toKey);
+    if(fromIndex === -1 || toIndex === -1) return;
+
+    const [moved] = sorted.splice(fromIndex, 1);
+    sorted.splice(toIndex, 0, moved);
+
+    // Reatribui a ordem sequencial e grava no Firebase de uma vez só.
+    const updates = {};
+    sorted.forEach((l, i) => {
+      l.order = i;
+      updates[`links/${l.key}/order`] = i;
+    });
+    links = sorted;
+    render();
+    db.ref().update(updates);
   }
 
   function addCard(){
@@ -330,7 +396,8 @@
       url = 'https://' + url;
     }
 
-    linksRef.push({ title, url });
+    const maxOrder = links.reduce((max, l) => Math.max(max, l.order ?? 0), -1);
+    linksRef.push({ title, url, order: maxOrder + 1 });
     titleInput.value = '';
     urlInput.value = '';
   }
