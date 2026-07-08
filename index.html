@@ -73,7 +73,21 @@
     font-size:0.8rem;
     background: rgba(255,255,255,0.95);
   }
-  .add-bar input:focus{ outline:2px solid var(--gold); border-color:transparent;}
+  .add-bar label{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    color:#dfe6f2;
+    font-size:0.72rem;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .add-bar input[type="checkbox"]{
+    width:14px;
+    height:14px;
+    cursor:pointer;
+  }
+  .add-bar input[type="text"]:focus{ outline:2px solid var(--gold); border-color:transparent;}
   .add-bar button{
     background: transparent;
     color:#fff;
@@ -111,9 +125,8 @@
     color:inherit;
     transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
     position:relative;
-    cursor:grab;
+    cursor:default;
   }
-  .card:active{ cursor:grabbing; }
   .card:hover{
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(11,30,58,0.18);
@@ -212,6 +225,38 @@
     padding:0 6px;
   }
 
+  .thumb-placeholder{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: #4a6491;
+  }
+  .thumb-placeholder svg{
+    width:38%;
+    height:38%;
+  }
+
+  .card-toggle{
+    position:absolute;
+    top:4px; left:4px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:rgba(16,25,43,0.55);
+    color:#fff;
+    border:none;
+    cursor:pointer;
+    z-index:3;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+  }
+  .card:hover .card-toggle{ display:flex; }
+  .card-toggle:hover{ background: var(--gold); }
+  .card-toggle svg{ width:9px; height:9px; }
+
   .card-footer{
     padding: 5px 8px 8px;
     font-size:0.6rem;
@@ -246,6 +291,7 @@
   <div class="add-bar">
     <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
     <input id="newUrl" type="text" placeholder="https://link-do-sistema.com">
+    <label><input id="newNoPreview" type="checkbox"> Link interno (sem prévia)</label>
     <button onclick="addCard()">Adicionar card</button>
   </div>
 </header>
@@ -319,6 +365,13 @@
 
       card.innerHTML = `
         <button class="card-delete" title="Remover card" onclick="deleteCard(event, '${link.key}')">✕</button>
+        <button class="card-toggle" title="${link.noPreview ? 'Tentar mostrar prévia real' : 'Marcar como link interno (sem prévia)'}" onclick="togglePreview(event, '${link.key}', ${!!link.noPreview})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            ${link.noPreview
+              ? '<path d="M1 1l22 22"></path><path d="M9.9 4.2A10 10 0 0 1 22 12a10.4 10.4 0 0 1-1.3 2.6M6.5 6.5A10.4 10.4 0 0 0 2 12a10 10 0 0 0 16.6 3.1"></path>'
+              : '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle>'}
+          </svg>
+        </button>
         <div class="card-title">
           <span class="grip">⋮⋮</span>
           <span class="title-text">${link.title}</span>
@@ -328,10 +381,22 @@
           <span class="b-red"></span><span class="b-yellow"></span><span class="b-green"></span>
         </div>
         <div class="thumb-wrap">
-          <div class="loading">Carregando prévia...</div>
-          <img loading="lazy" src="${screenshotUrl(link.url)}" alt="Prévia de ${link.title}"
-               onload="this.previousElementSibling.style.display='none'"
-               onerror="this.previousElementSibling.textContent='Prévia indisponível'">
+          ${link.noPreview ? `
+            <div class="thumb-placeholder">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="10" width="52" height="44" rx="4"></rect>
+                <line x1="6" y1="22" x2="58" y2="22"></line>
+                <circle cx="13" cy="16" r="1.3" fill="currentColor" stroke="none"></circle>
+                <circle cx="19" cy="16" r="1.3" fill="currentColor" stroke="none"></circle>
+                <circle cx="25" cy="16" r="1.3" fill="currentColor" stroke="none"></circle>
+              </svg>
+            </div>
+          ` : `
+            <div class="loading">Carregando prévia...</div>
+            <img loading="lazy" src="${screenshotUrl(link.url)}" alt="Prévia de ${link.title}"
+                 onload="this.previousElementSibling.style.display='none'"
+                 onerror="this.previousElementSibling.textContent='Prévia indisponível'">
+          `}
         </div>
         <div class="card-footer">${hostname}</div>
       `;
@@ -385,6 +450,7 @@
   function addCard(){
     const titleInput = document.getElementById('newTitle');
     const urlInput = document.getElementById('newUrl');
+    const noPreviewInput = document.getElementById('newNoPreview');
     const title = titleInput.value.trim();
     let url = urlInput.value.trim();
 
@@ -397,9 +463,16 @@
     }
 
     const maxOrder = links.reduce((max, l) => Math.max(max, l.order ?? 0), -1);
-    linksRef.push({ title, url, order: maxOrder + 1 });
+    linksRef.push({ title, url, order: maxOrder + 1, noPreview: noPreviewInput.checked });
     titleInput.value = '';
     urlInput.value = '';
+    noPreviewInput.checked = false;
+  }
+
+  function togglePreview(event, key, current){
+    event.preventDefault();
+    event.stopPropagation();
+    linksRef.child(key).update({ noPreview: !current });
   }
 
   function deleteCard(event, key){
