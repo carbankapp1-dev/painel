@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Painel de Sistemas</title>
+<style>
+  :root{
+    --navy-deep: #0b1e3a;
+    --navy: #12294d;
+    --navy-light: #1c3a63;
+    --gold: #d4a53d;
+    --paper: #eef1f6;
+    --ink: #10192b;
+    --muted: #6b7688;
+    --line: #d9dee6;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height:100vh;
+  }
+
+  header{
+    background: linear-gradient(135deg, var(--navy-deep), var(--navy));
+    padding: 36px 24px 44px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    bottom:-2px; left:0; right:0;
+    height:4px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  header h1{
+    color:#fff;
+    font-size: 1.9rem;
+    letter-spacing: 0.3px;
+    font-weight: 700;
+  }
+  header p{
+    color: #b7c4dc;
+    margin-top:8px;
+    font-size:0.95rem;
+  }
+
+  .add-bar{
+    max-width: 1100px;
+    margin: -24px auto 0;
+    background:#fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(11,30,58,0.12);
+    padding: 14px 18px;
+    display:flex;
+    gap:10px;
+    flex-wrap: wrap;
+    position:relative;
+    z-index:2;
+  }
+  .add-bar input{
+    flex:1;
+    min-width: 160px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding: 10px 12px;
+    font-size:0.92rem;
+  }
+  .add-bar input:focus{ outline:2px solid var(--gold); border-color:transparent;}
+  .add-bar button{
+    background: var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding: 10px 18px;
+    font-weight:600;
+    font-size:0.92rem;
+    cursor:pointer;
+    transition: background .15s ease;
+  }
+  .add-bar button:hover{ background: var(--navy-light); }
+
+  main{
+    max-width: 1100px;
+    margin: 28px auto 60px;
+    padding: 0 20px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .card{
+    background:#fff;
+    border-radius: 12px;
+    overflow:hidden;
+    box-shadow: 0 4px 14px rgba(11,30,58,0.10);
+    display:flex;
+    flex-direction:column;
+    text-decoration:none;
+    color:inherit;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(11,30,58,0.18);
+  }
+
+  .card-title{
+    padding: 12px 14px;
+    font-weight:700;
+    font-size:0.98rem;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .card-title .dot{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--gold);
+    flex-shrink:0;
+  }
+
+  .browser-frame{
+    background: #dfe4ec;
+    padding: 6px 8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .browser-frame span{
+    width:9px; height:9px; border-radius:50%;
+  }
+  .b-red{background:#ef5f57;}
+  .b-yellow{background:#f6bf4f;}
+  .b-green{background:#61c454;}
+
+  .thumb-wrap{
+    position:relative;
+    width:100%;
+    aspect-ratio: 16 / 10;
+    background: var(--navy-deep) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="none"/></svg>');
+    overflow:hidden;
+  }
+  .thumb-wrap img{
+    width:100%;
+    height:100%;
+    object-fit: cover;
+    object-position: top;
+    display:block;
+  }
+  .thumb-wrap .loading{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color:#9fb0cc;
+    font-size:0.8rem;
+  }
+
+  .card-footer{
+    padding: 10px 14px 14px;
+    font-size:0.78rem;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  .empty{
+    text-align:center;
+    color: var(--muted);
+    padding: 40px 20px;
+  }
+
+  @media (max-width: 1024px){
+    .grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px){
+    .grid{ grid-template-columns: 1fr; gap:18px; }
+    header h1{ font-size: 1.5rem; }
+    .add-bar{ margin: -18px 14px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Painel de Sistemas</h1>
+  <p>Acesso rápido com prévia automática das telas</p>
+</header>
+
+<div class="add-bar">
+  <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
+  <input id="newUrl" type="text" placeholder="https://link-do-sistema.com">
+  <button onclick="addCard()">Adicionar card</button>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="emptyMsg" style="display:none;">Nenhum link cadastrado ainda. Adicione um acima.</p>
+</main>
+
+<script>
+  // Lista inicial de links. Para adicionar mais depois, basta editar este array
+  // ou usar a barra "Adicionar card" no topo da página.
+  let links = [
+    { title: "NetCarros", url: "https://carbankapp1-dev.github.io/netcarros/" },
+    { title: "Propostas", url: "https://demandassp1-vw.github.io/propostas/" },
+    { title: "Taxa Especial", url: "https://demandassp1-vw.github.io/taxa_especial/" },
+    { title: "Baixa Temporária - Ofício", url: "https://demandassp1-vw.github.io/baixa-temporaria-oficio/" }
+  ];
+
+  function screenshotUrl(targetUrl){
+    // Serviço gratuito de screenshot automático: recebe a URL do site
+    // e devolve uma imagem da tela renderizada, sem precisar acessar manualmente.
+    return `https://image.thum.io/get/width/900/crop/560/noanimate/${targetUrl}`;
+  }
+
+  function render(){
+    const grid = document.getElementById('grid');
+    const emptyMsg = document.getElementById('emptyMsg');
+    grid.innerHTML = '';
+
+    if(links.length === 0){
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    links.forEach(link => {
+      const card = document.createElement('a');
+      card.className = 'card';
+      card.href = link.url;
+      card.target = '_blank';
+      card.rel = 'noopener noreferrer';
+
+      let hostname = '';
+      try { hostname = new URL(link.url).hostname; } catch(e) { hostname = link.url; }
+
+      card.innerHTML = `
+        <div class="card-title">
+          <span>${link.title}</span>
+          <span class="dot"></span>
+        </div>
+        <div class="browser-frame">
+          <span class="b-red"></span><span class="b-yellow"></span><span class="b-green"></span>
+        </div>
+        <div class="thumb-wrap">
+          <div class="loading">Carregando prévia...</div>
+          <img loading="lazy" src="${screenshotUrl(link.url)}" alt="Prévia de ${link.title}"
+               onload="this.previousElementSibling.style.display='none'"
+               onerror="this.previousElementSibling.textContent='Prévia indisponível'">
+        </div>
+        <div class="card-footer">${hostname}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function addCard(){
+    const titleInput = document.getElementById('newTitle');
+    const urlInput = document.getElementById('newUrl');
+    const title = titleInput.value.trim();
+    let url = urlInput.value.trim();
+
+    if(!title || !url){
+      alert('Preencha o nome e o link do sistema.');
+      return;
+    }
+    if(!/^https?:\/\//i.test(url)){
+      url = 'https://' + url;
+    }
+
+    links.push({ title, url });
+    titleInput.value = '';
+    urlInput.value = '';
+    render();
+  }
+
+  render();
+</script>
+
+</body>
+</html>
