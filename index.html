@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Painel de Sistemas</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --navy-deep: #0b1e3a;
@@ -49,6 +51,12 @@
     letter-spacing: 0.3px;
     font-weight: 700;
     white-space:nowrap;
+  }
+  #statusMsg{
+    color:#b7c4dc;
+    font-size:0.7rem;
+    margin-left:10px;
+    font-weight:400;
   }
 
   .add-bar{
@@ -102,11 +110,29 @@
     text-decoration:none;
     color:inherit;
     transition: transform .15s ease, box-shadow .15s ease;
+    position:relative;
   }
   .card:hover{
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(11,30,58,0.18);
   }
+  .card-delete{
+    position:absolute;
+    top:4px; right:4px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:rgba(16,25,43,0.55);
+    color:#fff;
+    border:none;
+    font-size:0.6rem;
+    line-height:16px;
+    text-align:center;
+    cursor:pointer;
+    z-index:3;
+    display:none;
+  }
+  .card:hover .card-delete{ display:block; }
+  .card-delete:hover{ background:#c0392b; }
 
   .card-title{
     padding: 6px 8px;
@@ -199,7 +225,7 @@
 <body>
 
 <header>
-  <h1>Painel de Sistemas</h1>
+  <h1>Painel de Sistemas<span id="statusMsg"></span></h1>
   <div class="add-bar">
     <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
     <input id="newUrl" type="text" placeholder="https://link-do-sistema.com">
@@ -213,14 +239,34 @@
 </main>
 
 <script>
-  // Lista inicial de links. Para adicionar mais depois, basta editar este array
-  // ou usar a barra "Adicionar card" no topo da página.
-  let links = [
+  // ============================================================
+  // 1) COLE AQUI a configuração do SEU projeto Firebase.
+  //    Veja o passo a passo enviado no chat pra pegar esses valores.
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyDnuViuHn-NZl03eRco3yq1XMS5NYFlI0Y",
+    authDomain: "painel-b858c.firebaseapp.com",
+    databaseURL: "https://painel-b858c-default-rtdb.firebaseio.com",
+    projectId: "painel-b858c",
+    storageBucket: "painel-b858c.firebasestorage.app",
+    messagingSenderId: "233890942065",
+    appId: "1:233890942065:web:0ced22f00d4bcdccffdfd0"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const linksRef = db.ref('links');
+
+  // Links usados apenas para popular o banco na primeira vez que ele estiver vazio.
+  const seedLinks = [
     { title: "NetCarros", url: "https://carbankapp1-dev.github.io/netcarros/" },
     { title: "Propostas", url: "https://demandassp1-vw.github.io/propostas/" },
     { title: "Taxa Especial", url: "https://demandassp1-vw.github.io/taxa_especial/" },
     { title: "Baixa Temporária - Ofício", url: "https://demandassp1-vw.github.io/baixa-temporaria-oficio/" }
   ];
+
+  let links = []; // { key, title, url }
+  const statusMsg = document.getElementById('statusMsg');
 
   function screenshotUrl(targetUrl){
     // Serviço gratuito de screenshot automático: recebe a URL do site
@@ -250,6 +296,7 @@
       try { hostname = new URL(link.url).hostname; } catch(e) { hostname = link.url; }
 
       card.innerHTML = `
+        <button class="card-delete" title="Remover card" onclick="deleteCard(event, '${link.key}')">✕</button>
         <div class="card-title">
           <span>${link.title}</span>
           <span class="dot"></span>
@@ -283,13 +330,37 @@
       url = 'https://' + url;
     }
 
-    links.push({ title, url });
+    linksRef.push({ title, url });
     titleInput.value = '';
     urlInput.value = '';
-    render();
   }
 
-  render();
+  function deleteCard(event, key){
+    event.preventDefault();
+    event.stopPropagation();
+    if(confirm('Remover este card do painel?')){
+      linksRef.child(key).remove();
+    }
+  }
+
+  // Escuta o banco em tempo real: qualquer alteração (deste ou de outro computador)
+  // atualiza a tela na hora.
+  linksRef.on('value', snapshot => {
+    const data = snapshot.val() || {};
+    links = Object.entries(data).map(([key, val]) => ({ key, ...val }));
+    render();
+    statusMsg.textContent = '· conectado';
+  }, error => {
+    statusMsg.textContent = '· erro de conexão com o banco';
+    console.error(error);
+  });
+
+  // Na primeira vez que o banco estiver vazio, popula com os links iniciais.
+  linksRef.once('value').then(snapshot => {
+    if(!snapshot.exists()){
+      seedLinks.forEach(link => linksRef.push(link));
+    }
+  });
 </script>
 
 </body>
