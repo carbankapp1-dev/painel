@@ -71,11 +71,40 @@
     font-weight:400;
   }
 
+  .add-toggle-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background: transparent;
+    color:#fff;
+    border:1.5px solid rgba(255,255,255,0.5);
+    border-radius:7px;
+    padding: 7px 14px;
+    font-weight:600;
+    font-size:0.8rem;
+    cursor:pointer;
+    white-space:nowrap;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .add-toggle-btn:hover{ background: rgba(255,255,255,0.12); border-color:#fff; }
+  .add-toggle-btn svg{ width:13px; height:13px; transition: transform .2s ease; }
+  .add-toggle-btn.open svg{ transform: rotate(45deg); }
+
   .add-bar{
     display:flex;
     gap:8px;
     flex-wrap: wrap;
     align-items:center;
+    overflow:hidden;
+    max-width:0;
+    opacity:0;
+    max-height:0;
+    transition: max-width .25s ease, opacity .2s ease;
+  }
+  .add-bar.open{
+    max-width: 700px;
+    opacity:1;
+    max-height:none;
   }
   .add-bar input{
     width: 180px;
@@ -273,9 +302,40 @@
     padding: 5px 8px 8px;
     font-size:0.6rem;
     color: var(--muted);
-    white-space:nowrap;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+  }
+  .card-footer .hostname{
     overflow:hidden;
     text-overflow:ellipsis;
+    white-space:nowrap;
+    flex:1;
+  }
+  .copy-btn{
+    flex-shrink:0;
+    width:22px; height:22px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:#fff;
+    color: var(--muted);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .copy-btn:hover{
+    background: var(--navy);
+    color:#fff;
+    border-color: var(--navy);
+  }
+  .copy-btn svg{ width:11px; height:11px; }
+  .copy-btn.copied{
+    background: #2e9e5b;
+    color:#fff;
+    border-color: #2e9e5b;
   }
 
   .empty{
@@ -291,7 +351,9 @@
     .grid{ grid-template-columns: repeat(2, 1fr); gap:10px; }
     header{ flex-direction:column; align-items:stretch; padding: 14px 16px; }
     header h1{ font-size: 1.3rem; text-align:center; }
-    .add-bar{ justify-content:center; }
+    .add-toggle-btn{ justify-content:center; }
+    .add-bar{ justify-content:center; max-width:none; width:0; }
+    .add-bar.open{ width:100%; max-width:none; }
     .add-bar input{ width: 100%; flex:1; min-width:120px; }
   }
 </style>
@@ -300,7 +362,11 @@
 
 <header>
   <h1>Painel de Sistemas<span id="statusMsg"></span></h1>
-  <div class="add-bar">
+  <button id="addToggleBtn" class="add-toggle-btn" onclick="toggleAddBar()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    Adicionar link
+  </button>
+  <div class="add-bar" id="addBar">
     <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
     <input id="newUrl" type="text" placeholder="https://link-do-sistema.com">
     <label><input id="newNoPreview" type="checkbox"> Link interno (sem prévia)</label>
@@ -410,7 +476,15 @@
                  onerror="this.previousElementSibling.textContent='Prévia indisponível'">
           `}
         </div>
-        <div class="card-footer">${hostname}</div>
+        <div class="card-footer">
+          <span class="hostname">${hostname}</span>
+          <button class="copy-btn" title="Copiar link" onclick="copyLink(event, this, '${link.url}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
       `;
 
       card.addEventListener('dragstart', () => {
@@ -485,6 +559,52 @@
     event.preventDefault();
     event.stopPropagation();
     linksRef.child(key).update({ noPreview: !current });
+  }
+
+  function toggleAddBar(){
+    const addBar = document.getElementById('addBar');
+    const toggleBtn = document.getElementById('addToggleBtn');
+    const isOpen = addBar.classList.toggle('open');
+    toggleBtn.classList.toggle('open', isOpen);
+    if(isOpen){
+      document.getElementById('newTitle').focus();
+    }
+  }
+
+  function copyLink(event, btn, url){
+    event.preventDefault();
+    event.stopPropagation();
+
+    const showCopied = () => {
+      const original = btn.innerHTML;
+      btn.classList.add('copied');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = original;
+      }, 1200);
+    };
+
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(showCopied).catch(() => {
+        fallbackCopy(url);
+        showCopied();
+      });
+    } else {
+      fallbackCopy(url);
+      showCopied();
+    }
+  }
+
+  function fallbackCopy(url){
+    const textarea = document.createElement('textarea');
+    textarea.value = url;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(textarea);
   }
 
   function deleteCard(event, key){
