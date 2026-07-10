@@ -74,20 +74,19 @@
   .add-toggle-btn{
     display:flex;
     align-items:center;
-    gap:6px;
+    justify-content:center;
+    width: 34px;
+    height: 34px;
+    flex-shrink:0;
     background: transparent;
     color:#fff;
     border:1.5px solid rgba(255,255,255,0.5);
-    border-radius:7px;
-    padding: 7px 14px;
-    font-weight:600;
-    font-size:0.8rem;
+    border-radius:50%;
     cursor:pointer;
-    white-space:nowrap;
     transition: background .15s ease, color .15s ease, border-color .15s ease;
   }
   .add-toggle-btn:hover{ background: rgba(255,255,255,0.12); border-color:#fff; }
-  .add-toggle-btn svg{ width:13px; height:13px; transition: transform .2s ease; }
+  .add-toggle-btn svg{ width:15px; height:15px; transition: transform .2s ease; }
   .add-toggle-btn.open svg{ transform: rotate(45deg); }
 
   .add-bar{
@@ -362,9 +361,8 @@
 
 <header>
   <h1>Painel de Sistemas<span id="statusMsg"></span></h1>
-  <button id="addToggleBtn" class="add-toggle-btn" onclick="toggleAddBar()">
+  <button id="addToggleBtn" class="add-toggle-btn" onclick="toggleAddBar()" title="Adicionar link">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-    Adicionar link
   </button>
   <div class="add-bar" id="addBar">
     <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
