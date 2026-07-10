@@ -71,6 +71,13 @@
     font-weight:400;
   }
 
+  .add-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-shrink:0;
+  }
+
   .add-toggle-btn{
     display:flex;
     align-items:center;
@@ -350,8 +357,9 @@
     .grid{ grid-template-columns: repeat(2, 1fr); gap:10px; }
     header{ flex-direction:column; align-items:stretch; padding: 14px 16px; }
     header h1{ font-size: 1.3rem; text-align:center; }
-    .add-toggle-btn{ justify-content:center; }
-    .add-bar{ justify-content:center; max-width:none; width:0; }
+    .add-wrap{ justify-content:center; flex-wrap:wrap; }
+    .add-toggle-btn{ order:1; }
+    .add-bar{ justify-content:center; max-width:none; width:0; order:2; }
     .add-bar.open{ width:100%; max-width:none; }
     .add-bar input{ width: 100%; flex:1; min-width:120px; }
   }
@@ -361,14 +369,16 @@
 
 <header>
   <h1>Painel de Sistemas<span id="statusMsg"></span></h1>
-  <button id="addToggleBtn" class="add-toggle-btn" onclick="toggleAddBar()" title="Adicionar link">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  </button>
-  <div class="add-bar" id="addBar">
-    <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
-    <input id="newUrl" type="text" placeholder="https://link-do-sistema.com">
-    <label><input id="newNoPreview" type="checkbox"> Link interno (sem prévia)</label>
-    <button onclick="addCard()">Adicionar card</button>
+  <div class="add-wrap">
+    <div class="add-bar" id="addBar">
+      <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
+      <input id="newUrl" type="text" placeholder="https://link-do-sistema.com">
+      <label><input id="newNoPreview" type="checkbox"> Link interno (sem prévia)</label>
+      <button onclick="addCard()">Adicionar card</button>
+    </div>
+    <button id="addToggleBtn" class="add-toggle-btn" onclick="toggleAddBar()" title="Adicionar link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
   </div>
 </header>
 
