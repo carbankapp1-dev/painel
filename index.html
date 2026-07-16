@@ -71,6 +71,43 @@
     font-weight:400;
   }
 
+  .header-left{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-wrap:wrap;
+    min-width:0;
+  }
+
+  .search-wrap{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    background: rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.25);
+    border-radius:8px;
+    padding: 6px 10px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .search-wrap:focus-within{
+    border-color: var(--gold);
+    background: rgba(255,255,255,0.12);
+  }
+  .search-wrap svg{
+    width:14px; height:14px;
+    color:#9fb0cc;
+    flex-shrink:0;
+  }
+  .search-wrap input{
+    background:transparent;
+    border:none;
+    outline:none;
+    color:#fff;
+    font-size:0.82rem;
+    width:170px;
+  }
+  .search-wrap input::placeholder{ color:#8296b8; }
+
   .add-wrap{
     display:flex;
     align-items:center;
@@ -357,6 +394,9 @@
     .grid{ grid-template-columns: repeat(2, 1fr); gap:10px; }
     header{ flex-direction:column; align-items:stretch; padding: 14px 16px; }
     header h1{ font-size: 1.3rem; text-align:center; }
+    .header-left{ flex-direction:column; align-items:stretch; gap:10px; }
+    .search-wrap{ width:100%; }
+    .search-wrap input{ width:100%; }
     .add-wrap{ justify-content:center; flex-wrap:wrap; }
     .add-toggle-btn{ order:1; }
     .add-bar{ justify-content:center; max-width:none; width:0; order:2; }
@@ -368,7 +408,13 @@
 <body>
 
 <header>
-  <h1>Painel de Sistemas<span id="statusMsg"></span></h1>
+  <div class="header-left">
+    <h1>Painel de Sistemas<span id="statusMsg"></span></h1>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="searchInput" type="text" placeholder="Buscar sistema..." oninput="handleSearch()">
+    </div>
+  </div>
   <div class="add-wrap">
     <div class="add-bar" id="addBar">
       <input id="newTitle" type="text" placeholder="Nome do sistema (ex: Portal Gravames)">
@@ -380,6 +426,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
     </button>
   </div>
+
 </header>
 
 <main>
@@ -416,6 +463,7 @@
 
   let links = []; // { key, title, url, order }
   let draggedKey = null;
+  let searchQuery = '';
   const statusMsg = document.getElementById('statusMsg');
 
   function screenshotUrl(targetUrl){
@@ -424,20 +472,39 @@
     return `https://image.thum.io/get/width/900/crop/560/noanimate/${targetUrl}`;
   }
 
+  function handleSearch(){
+    searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+    render();
+  }
+
   function render(){
     const grid = document.getElementById('grid');
     const emptyMsg = document.getElementById('emptyMsg');
     grid.innerHTML = '';
 
     if(links.length === 0){
+      emptyMsg.textContent = 'Nenhum link cadastrado ainda. Adicione um pelo ícone "+" no topo.';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+
+    const sorted = [...links].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    const filtered = searchQuery
+      ? sorted.filter(link =>
+          link.title.toLowerCase().includes(searchQuery) ||
+          link.url.toLowerCase().includes(searchQuery)
+        )
+      : sorted;
+
+    if(filtered.length === 0){
+      emptyMsg.textContent = 'Nenhum sistema encontrado para essa busca.';
       emptyMsg.style.display = 'block';
       return;
     }
     emptyMsg.style.display = 'none';
 
-    const sorted = [...links].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-    sorted.forEach(link => {
+    filtered.forEach(link => {
       const card = document.createElement('a');
       card.className = 'card';
       card.href = link.url;
